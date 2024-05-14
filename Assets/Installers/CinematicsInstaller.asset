@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0cc34009ca347748c89116c4850db9d, type: 3}
+  m_Name: CinematicsInstaller
+  m_EditorClassIdentifier: 
+  _cameraConfig:
+    cameraPrefab: {fileID: 4950033284286669262, guid: 0b34871060c990d4eb7346f1d4fafe25, type: 3}
+    sensitivity: {x: 200, y: 100}
+    xAxisClamp: {x: 0, y: 80}
+    zoomRadius: 10
