@@ -9,5 +9,7 @@ namespace Frever.UI.CameraRecording
         public UIButtonPrefab playButton;
         public UIButtonPrefab stopButton;
         public UIButtonPrefab recordButton;
+        public RectTransform playingLabel;
+        public RectTransform recordingLabel;
     }
 }

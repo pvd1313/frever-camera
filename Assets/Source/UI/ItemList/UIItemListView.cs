@@ -15,6 +15,8 @@ namespace Frever.UI.ItemList
         private readonly UIItemListConfig _config;
         private readonly List<UIListItemPrefab> _items;
 
+        private bool _isInteractable;
+
         public UIItemListView(RectTransform itemRoot, UIItemListConfig config)
         {
             _itemRoot = itemRoot;
@@ -23,7 +25,12 @@ namespace Frever.UI.ItemList
             _items = new List<UIListItemPrefab>();
         }
 
-        public void AddItem(string text)
+        public void SetInteractable(bool isInteractable)
+        {
+            _isInteractable = isInteractable;
+        }
+
+        public int AddItem(string text)
         {
             UIListItemPrefab item = GameObject.Instantiate(_config.uiListItemPrefab, _itemRoot);
             item.text.text = text;
@@ -32,21 +39,28 @@ namespace Frever.UI.ItemList
             item.button.onClick.AddListener(() => OnItemClicked(itemIndex));
 
             _items.Add(item);
+
+            return _items.Count - 1;
         }
 
         private void OnItemClicked(int itemIndex)
         {
+            if (!_isInteractable)
+            {
+                return;
+            }
+            
             if (selectedItemIndex == itemIndex)
             {
                 return;
             }
             
-            SetSelectedItem(itemIndex);
+            SelectItem(itemIndex);
 
             selectionChange?.Invoke(selectedItemIndex);
         }
 
-        public void SetSelectedItem(int itemIndex)
+        public void SelectItem(int itemIndex)
         {
             if (selectedItemIndex == itemIndex)
             {

@@ -16,4 +16,6 @@ MonoBehaviour:
     cameraPrefab: {fileID: 4950033284286669262, guid: 0b34871060c990d4eb7346f1d4fafe25, type: 3}
     sensitivity: {x: 200, y: 100}
     xAxisClamp: {x: 0, y: 80}
+    initialAngle: {x: 45, y: 45}
     zoomRadius: 10
+    recordingTickRate: 10
