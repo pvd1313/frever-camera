@@ -1,4 +1,5 @@
-﻿using Frever.GameLoop;
+﻿using System.Collections.Generic;
+using Frever.GameLoop;
 using Frever.Input;
 using Source.Common;
 using UnityEngine;
@@ -11,9 +12,14 @@ namespace Frever.Cinematics
         private readonly InputController _input;
         private readonly CameraConfig _config;
 
-        private Transform _camera;
+        private Transform _cameraTransform;
+        private Camera _camera;
         private Vector2 _angle;
         private Vector2 _touchPosition;
+        private bool _touchActive;
+        
+        private PointerEventData _pointerEventData;
+        private List<RaycastResult> _pointerRaycastResult;
 
         public CameraController(InputController input, CameraConfig config)
         {
@@ -23,25 +29,30 @@ namespace Frever.Cinematics
         
         public void Initialize()
         {
-            _camera = GameObject.Instantiate(_config.cameraPrefab).transform;
+            CameraPrefab cameraInstance = GameObject.Instantiate(_config.cameraPrefab);
+
+            _pointerRaycastResult = new List<RaycastResult>();
+            
+            _cameraTransform = cameraInstance.transform;
+            _camera = cameraInstance.camera;
         }
 
         public void Update()
         {
             TouchState touch = _input.GetTouchState();
 
-            if (touch.button.HasFlag(ButtonState.PressedThisFrame))
+            if (touch.button.HasFlag(ButtonState.PressedThisFrame) && !CheckPointOverlapsUI(touch.viewportPosition))
             {
+                _touchActive = true;
                 _touchPosition = touch.viewportPosition;
             }
             
             Vector2 touchAngle = Vector2.zero;
 
-            if (touch.button.HasFlag(ButtonState.HeldDown) || touch.button.HasFlag(ButtonState.ReleasedThisFrame))
+            if (_touchActive)
             {
                 touchAngle = (touch.viewportPosition - _touchPosition) * _config.sensitivity;
                 (touchAngle.x, touchAngle.y) = (touchAngle.y, touchAngle.x);
-                touchAngle.x *= -1;
             }
 
             Vector2 displayAngle = _angle + touchAngle;
@@ -49,13 +60,29 @@ namespace Frever.Cinematics
             
             Vector3 viewDirection = Quaternion.Euler(displayAngle.XY0()) * (Vector3.forward * _config.zoomRadius);
             
-            _camera.transform.rotation = Quaternion.LookRotation(viewDirection);
-            _camera.transform.position = viewDirection * -1;
+            _cameraTransform.transform.rotation = Quaternion.LookRotation(viewDirection);
+            _cameraTransform.transform.position = viewDirection * -1;
 
-            if (touch.button.HasFlag(ButtonState.ReleasedThisFrame))
+            if (_touchActive && touch.button.HasFlag(ButtonState.ReleasedThisFrame))
             {
                 _angle = displayAngle;
+                _touchActive = false;
             }
+        }
+
+        private bool CheckPointOverlapsUI(Vector2 viewportPoint)
+        {
+            if (EventSystem.current == null)
+            {
+                return false;
+            }
+
+            _pointerEventData ??= new PointerEventData(EventSystem.current);
+            _pointerEventData.position = new Vector2(viewportPoint.x * Screen.width, (1 - viewportPoint.y) * Screen.height);
+
+            EventSystem.current.RaycastAll(_pointerEventData, _pointerRaycastResult);
+
+            return _pointerRaycastResult.Count > 0;
         }
     }
 }

@@ -7,14 +7,14 @@ namespace Frever.Input
         public TouchState GetTouchState()
         {
             Vector3 mousePosition = UnityEngine.Input.mousePosition;
-
+            
             return new TouchState
             {
                 button = GetMouseButtonState(0),
                 viewportPosition = new Vector2
                 {
                     x = mousePosition.x / Screen.width,
-                    y = mousePosition.y / Screen.height
+                    y = 1 - mousePosition.y / Screen.height
                 }
             };
         }
