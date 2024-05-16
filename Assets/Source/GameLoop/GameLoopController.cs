@@ -8,14 +8,18 @@ namespace Frever.GameLoop
     {
         private readonly IReadOnlyList<IInitializable> _initializables;
         private readonly IReadOnlyList<IUpdatable> _updatables;
+        private readonly List<IGizmosDrawer> _gizmosDrawers;
 
         private UpdateHandler _updateHandler;
         private HashSet<IUpdatable> _brokenUpdatables;
 
-        public GameLoopController(List<IInitializable> initializables, List<IUpdatable> updatables)
+        public GameLoopController(List<IInitializable> initializables, 
+                                  List<IUpdatable> updatables,
+                                  List<IGizmosDrawer> gizmosDrawers)
         {
             _initializables = initializables;
             _updatables = updatables;
+            _gizmosDrawers = gizmosDrawers;
         }
 
         public void Initialize()
@@ -24,12 +28,28 @@ namespace Frever.GameLoop
             
             _updateHandler = new GameObject("GameLoop").AddComponent<UpdateHandler>();
             _updateHandler.update += OnUpdate;
+            _updateHandler.drawGizmos += OnDrawGizmos;
 
             for (int i = 0; i < _initializables.Count; i++)
             {
                 try
                 {
                     _initializables[i].Initialize();
+                }
+                catch (Exception e)
+                {
+                    Debug.LogException(e);
+                }
+            }
+        }
+
+        private void OnDrawGizmos()
+        {
+            for (int i = 0; i < _gizmosDrawers.Count; i++)
+            {
+                try
+                {
+                    _gizmosDrawers[i].DrawGizmos();
                 }
                 catch (Exception e)
                 {

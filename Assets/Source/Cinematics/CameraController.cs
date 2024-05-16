@@ -11,12 +11,6 @@ namespace Frever.Cinematics
 {
     public class CameraController : IInitializable, IUpdatable
     {
-        private struct CameraAngleRecord
-        {
-            public float time;
-            public Vector2 angle;
-        }
-        
         private readonly InputController _input;
         private readonly CameraConfig _config;
 
@@ -66,7 +60,7 @@ namespace Frever.Cinematics
             _streamReader = new BinaryReader(stream);
             _recordStartTime = Time.realtimeSinceStartupAsDouble;
             
-            if (TryReadCameraRecord(out _nextPlayingRecord))
+            if (_nextPlayingRecord.TryReadFromStream(_streamReader))
             {
                 _playingTargetAngle = _nextPlayingRecord.angle;
                 _playingTempAngle = _nextPlayingRecord.angle;
@@ -92,25 +86,7 @@ namespace Frever.Cinematics
                 _streamReader = null;
             }
         }
-
-        private bool TryReadCameraRecord(out CameraAngleRecord record)
-        {
-            record = default;
-            
-            try
-            {
-                record.time = _streamReader.ReadSingle();
-                record.angle.x = _streamReader.ReadSingle();
-                record.angle.y = _streamReader.ReadSingle();
-
-                return true;
-            }
-            catch (EndOfStreamException)
-            {
-                return false;
-            }
-        }
-
+        
         public void StartRecording(Stream stream)
         {
             _isRecording = true;
@@ -154,7 +130,7 @@ namespace Frever.Cinematics
                 {
                     _playingTargetAngle = _nextPlayingRecord.angle;
 
-                    if (!TryReadCameraRecord(out _nextPlayingRecord))
+                    if (!_nextPlayingRecord.TryReadFromStream(_streamReader))
                     {
                         _isPlaying = false;
                         _streamReader = null;
@@ -203,12 +179,14 @@ namespace Frever.Cinematics
                 
                 if (timeNow - _lastRecordTime >= deltaTick && !anglesAreSame)
                 {
-                    float recordLocalTime = (float)(timeNow - _recordStartTime);
-
-                    _streamWriter.Write(recordLocalTime);
-                    _streamWriter.Write(displayAngle.x);
-                    _streamWriter.Write(displayAngle.y);
-
+                    CameraAngleRecord record = new ()
+                    {
+                        time = (float)(timeNow - _recordStartTime),
+                        angle = displayAngle
+                    };
+                    
+                    record.WriteToStream(_streamWriter);
+                    
                     _lastRecordTime = timeNow;
                     _lastRecordAngle = displayAngle;
                 }
@@ -217,9 +195,39 @@ namespace Frever.Cinematics
 
         private void ApplyCameraRotation(Vector2 angle)
         {
+            TransformAngle(angle, out Vector3 position, out Quaternion rotation);
+            
+            _cameraTransform.transform.rotation = rotation;
+            _cameraTransform.transform.position = position;
+        }
+
+        public List<Vector3> BuildTrajectory(Stream stream)
+        {
+            int maxPointCount = (int) (stream.Length / CameraAngleRecord.RecordSizeBytes);
+            List<Vector3> points = new List<Vector3>(maxPointCount);
+            CameraAngleRecord record = default;
+            BinaryReader reader = new (stream);
+            Vector3 prevPosition = Vector3.zero;
+
+            while (record.TryReadFromStream(reader))
+            {
+                TransformAngle(record.angle, out Vector3 position, out _);
+
+                if (Vector3.Distance(position, prevPosition) > _config.gizmosPointMergeDistance)
+                {
+                    points.Add(position);
+                    prevPosition = position;
+                }
+            }
+
+            return points;
+        }
+        
+        private void TransformAngle(Vector2 angle, out Vector3 position, out Quaternion rotation)
+        {
             Vector3 viewDirection = Quaternion.Euler(angle.XY0()) * (Vector3.forward * _config.zoomRadius);
-            _cameraTransform.transform.rotation = Quaternion.LookRotation(viewDirection);
-            _cameraTransform.transform.position = viewDirection * -1;
+            position = viewDirection * -1;
+            rotation = Quaternion.LookRotation(viewDirection);
         }
 
         private bool CheckPointOverlapsUI(Vector2 viewportPoint)

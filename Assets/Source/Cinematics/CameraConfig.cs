@@ -12,5 +12,6 @@ namespace Frever.Cinematics
         public Vector2 initialAngle;
         public float zoomRadius;
         public int recordingTickRate;
+        public float gizmosPointMergeDistance;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using Frever.Cinematics;
 using Frever.GameLoop;
@@ -8,7 +9,7 @@ using UnityEngine;
 
 namespace Frever.UI.CameraRecording
 {
-    public class CameraRecordingUIController : IInitializable, IDisposable
+    public class CameraRecordingUIController : IInitializable, IGizmosDrawer, IDisposable
     {
         private const string FileExtension = ".rec";
         
@@ -21,6 +22,8 @@ namespace Frever.UI.CameraRecording
         private FileStream _recordStream;
         private bool _isRecording;
         private bool _isPlaying;
+
+        private List<Vector3> _gizmosTrajectory;
 
         public CameraRecordingUIController(CameraRecordingUIConfig config, CameraController camera)
         {
@@ -51,6 +54,8 @@ namespace Frever.UI.CameraRecording
         private void OnListItemSelectionChanged(int selectedIndex)
         {
             UpdateUIState();
+            
+            UpdateGizmosTrajectory();
         }
 
         private void OnRecordButtonPressed()
@@ -79,6 +84,8 @@ namespace Frever.UI.CameraRecording
                 _recordStream.Flush();
                 _recordStream.Dispose();
                 _recordStream = null;
+                
+                UpdateGizmosTrajectory();
             }
 
             if (_isPlaying)
@@ -136,6 +143,21 @@ namespace Frever.UI.CameraRecording
             button.button.interactable = isActive;
         }
 
+        private void UpdateGizmosTrajectory()
+        {
+            int selectedIndex = _recordListView.selectedItemIndex;
+            if (selectedIndex == -1)
+            {
+                return;
+            }
+
+            string fileName = _recordListView.GetItem(selectedIndex);
+            string filePath = GetFilePath(fileName);
+            using FileStream fileStream = File.OpenRead(filePath);
+
+            _gizmosTrajectory = _camera.BuildTrajectory(fileStream);
+        }
+
         private static string GenerateFileName()
         {
             return DateTime.Now.ToString("dd-MMM-yy HH-mm-ss");
@@ -144,6 +166,21 @@ namespace Frever.UI.CameraRecording
         private static string GetFilePath(string fileName)
         {
             return Path.Combine(Application.persistentDataPath, fileName + FileExtension);
+        }
+        
+        public void DrawGizmos()
+        {
+            if (_gizmosTrajectory == null)
+            {
+                return;
+            }
+            
+            Gizmos.color = Color.yellow;
+
+            for (int i = 1; i < _gizmosTrajectory.Count; i++)
+            {
+                Gizmos.DrawLine(_gizmosTrajectory[i - 1], _gizmosTrajectory[i]);
+            }
         }
 
         public void Dispose()

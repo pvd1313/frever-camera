@@ -19,3 +19,4 @@ MonoBehaviour:
     initialAngle: {x: 45, y: 45}
     zoomRadius: 10
     recordingTickRate: 10
+    gizmosPointMergeDistance: 0.5
